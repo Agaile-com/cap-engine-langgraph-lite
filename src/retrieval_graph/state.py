@@ -160,5 +160,8 @@ class State(InputState):
     retrieved_docs: list[Document] = field(default_factory=list)
     """Populated by the retriever. This is a list of documents that the agent can reference."""
 
+    tool_messages: list[dict] = field(default_factory=list)
+    """Messages related to tool calls and their responses."""
+
     # Feel free to add additional attributes to your state as needed.
     # Common examples include retrieved documents, extracted entities, API connections, etc.

@@ -8,13 +8,14 @@ relevant documents, and formulating responses.
 
 from datetime import datetime, timezone
 from typing import cast
+import json
 
 from langchain_core.documents import Document
 from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph
+from pydantic import BaseModel
 
 from retrieval_graph import retrieval
 from retrieval_graph.configuration import Configuration
@@ -28,59 +29,87 @@ class SearchQuery(BaseModel):
     """Search the indexed documents for a query."""
 
     query: str
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "query": "weather forecast for tomorrow"
+                }
+            ]
+        }
+    }
 
 
 async def generate_query(
     state: State, *, config: RunnableConfig
-) -> dict[str, list[str]]:
-    """Generate a search query based on the current state and configuration.
-
-    This function analyzes the messages in the state and generates an appropriate
-    search query. For the first message, it uses the user's input directly.
-    For subsequent messages, it uses a language model to generate a refined query.
-
-    Args:
-        state (State): The current state containing messages and other information.
-        config (RunnableConfig | None, optional): Configuration for the query generation process.
-
-    Returns:
-        dict[str, list[str]]: A dictionary with a 'queries' key containing a list of generated queries.
-
-    Behavior:
-        - If there's only one message (first user input), it uses that as the query.
-        - For subsequent messages, it uses a language model to generate a refined query.
-        - The function uses the configuration to set up the prompt and model for query generation.
-    """
+) -> dict[str, list[str] | list[dict]]:
+    """Generate a search query based on the current state and configuration."""
     messages = state.messages
     if len(messages) == 1:
         # It's the first user question. We will use the input directly to search.
         human_input = get_message_text(messages[-1])
         return {"queries": [human_input]}
-    else:
+    
+    try:
         configuration = Configuration.from_runnable_config(config)
-        # Feel free to customize the prompt, model, and other logic!
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", configuration.query_system_prompt),
-                ("placeholder", "{messages}"),
-            ]
-        )
-        model = load_chat_model(configuration.query_model).with_structured_output(
-            SearchQuery
-        )
-
+        
+        # Create a proper prompt for the model
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "Generate a search query based on the user's question. Previous queries: {queries}"),
+            ("human", "{input}")
+        ])
+        
+        # Format the input for the model with all required variables
+        last_message = get_message_text(messages[-1])
+        previous_queries = "\n- ".join(state.queries) if state.queries else "None"
+        
         message_value = await prompt.ainvoke(
             {
-                "messages": state.messages,
-                "queries": "\n- ".join(state.queries),
-                "system_time": datetime.now(tz=timezone.utc).isoformat(),
+                "input": last_message,
+                "queries": previous_queries,
+                "system_time": datetime.now(tz=timezone.utc).isoformat()
             },
             config,
         )
+        
+        # Generate the query using structured output with function calling
+        model = load_chat_model(configuration.query_model).with_structured_output(
+            SearchQuery,
+            method="function_calling"  # Explicitly use function calling
+        )
         generated = cast(SearchQuery, await model.ainvoke(message_value, config))
+        
+        # Create tool messages
+        tool_call_message = {
+            "role": "assistant",
+            "content": None,
+            "tool_calls": [{
+                "id": "search_query_generator",
+                "type": "function",
+                "function": {
+                    "name": "generate_search_query",
+                    "arguments": {"query": generated.query}
+                }
+            }]
+        }
+        
+        tool_response = {
+            "role": "tool",
+            "content": generated.query,
+            "tool_call_id": "search_query_generator"
+        }
+        
         return {
             "queries": [generated.query],
+            "messages": [tool_call_message, tool_response]
         }
+        
+    except Exception as e:
+        # Fallback to using the last user message directly
+        human_input = get_message_text(messages[-1])
+        print(f"Query generation failed: {e}. Falling back to direct user input.")
+        return {"queries": [human_input]}
 
 
 async def retrieve(
@@ -130,7 +159,6 @@ async def respond(
         config,
     )
     response = await model.ainvoke(message_value, config)
-    # We return a list, because this will get added to the existing list
     return {"messages": [response]}
 
 
