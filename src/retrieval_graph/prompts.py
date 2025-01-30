@@ -35,10 +35,17 @@ Instructions:
 4. Prioritize precision over broad, vague queries.
 """
 
-INTENT_SYSTEM_PROMPT = """Determine whether user's most recent query is relevant to the following intent.
+INTENT_SYSTEM_PROMPT = """Determine whether the user's most recent query is relevant to the following intent.
 
 <intent_description>
 {intent_description}
 </intent_description>
 
-System time: {system_time}"""
+System time: {system_time}
+
+Instructions:
+1. If the query is a general greeting (e.g., "Hi", "Hello") or an inquiry about capabilities (e.g., "How can you help?"), classify it as **relevant**.
+2. If the query is **completely unrelated** to the intent description, classify it as **irrelevant**.
+3. If the query is **partially related** but lacks clarity, classify it as **relevant** and allow further refinement.
+4. Be strict in filtering **fully off-topic** queries while allowing user engagement with general queries.
+"""
