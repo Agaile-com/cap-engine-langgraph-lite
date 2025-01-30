@@ -18,13 +18,22 @@ Instructions:
 4. Structure your response concisely and clearly.
 """
 
-QUERY_SYSTEM_PROMPT = """Generate search queries to retrieve documents that may help answer the user's question. Previously, you made the following queries:
+QUERY_SYSTEM_PROMPT = """Generate optimized search queries that retrieve the most relevant documents for answering the user's question.
 
-<previous_queries/>
+Prior queries made for this conversation:
+
+<previous_queries>
 {queries}
 </previous_queries>
 
-System time: {system_time}"""
+System time: {system_time}
+
+Instructions:
+1. Reformulate the query to maximize retrieval accuracy.
+2. Maintain the meaning of the user's intent but remove unnecessary words or ambiguity.
+3. If prior queries were unsuccessful, refine the approach to improve document retrieval.
+4. Prioritize precision over broad, vague queries.
+"""
 
 INTENT_SYSTEM_PROMPT = """Determine whether user's most recent query is relevant to the following intent.
 
