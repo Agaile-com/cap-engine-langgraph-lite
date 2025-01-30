@@ -145,7 +145,10 @@ async def retrieve(
 async def respond(
     state: State, *, config: RunnableConfig
 ) -> dict[str, list[BaseMessage]]:
-    """Call the LLM powering our "agent"."""
+    """Call the LLM powering our "agent" or return a restricted message if intent is not relevant."""
+    if not state.relevant:
+        response = "This action is restricted. Please rephrase your query."
+        return {"messages": [response]}
     configuration = Configuration.from_runnable_config(config)
     # Feel free to customize the prompt, model, and other logic!
     prompt = ChatPromptTemplate.from_messages(
