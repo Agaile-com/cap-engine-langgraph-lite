@@ -35,10 +35,17 @@ Instructions:
 4. Prioritize precision over broad, vague queries.
 """
 
-INTENT_SYSTEM_PROMPT = """Determine whether user's most recent query is relevant to the following intent.
+INTENT_SYSTEM_PROMPT = """Determine whether the user's most recent query is relevant to the following intent.
 
 <intent_description>
 {intent_description}
 </intent_description>
 
-System time: {system_time}"""
+System time: {system_time}
+
+Instructions:
+1. If the user's query does NOT match the intent description, classify it as **irrelevant**.
+2. Only classify a query as relevant if it clearly aligns with the intent description.
+3. Be strict in filtering out unrelated queries to prevent unnecessary processing.
+"""
+
