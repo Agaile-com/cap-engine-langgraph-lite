@@ -241,7 +241,7 @@ class Configuration(CommonConfiguration):
     )
 
     idk_response: Optional[str] = field(
-        default="",
+        default="🚫 This is out of the current scope of my knowledge!",
         metadata={
             "description": "The response to unrelated queries."
         },
