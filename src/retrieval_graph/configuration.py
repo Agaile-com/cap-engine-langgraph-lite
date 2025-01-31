@@ -240,6 +240,23 @@ class Configuration(CommonConfiguration):
         },
     )
 
+    idk_response: Optional[str] = field(
+        default="",
+        metadata={
+            "description": "The response to unrelated queries."
+        },
+    )
+
+    fallback_choice: Annotated[
+        Literal["idk-response", "fallback-to-LLM"],
+        {"_template_metadata_": {"kind": "fallback"}},
+    ] = field(
+        default="idk-response",
+        metadata={
+            "description": "Choose how to respond in case of irrelevant user queries."
+        },
+    )
+
     def __post_init__(self):
         # Always ensure "k"=10 if not already set
         self.search_kwargs.setdefault("k", 10)

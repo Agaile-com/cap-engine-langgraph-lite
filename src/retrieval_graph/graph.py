@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import cast
 
 from langchain_core.documents import Document
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import BaseMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.runnables import RunnableConfig
@@ -59,9 +59,12 @@ async def intent_guardrail(state, config):
     }
 
 
-def decide_relevance(state: State) -> str:
+def decide_relevance(state: State, config: RunnableConfig) -> str:
     """If not relevant straight go to response"""
     if not state.relevant:
+        configuration = Configuration.from_runnable_config(config)
+        if configuration.fallback_choice == "idk-response":
+            return "idk_response"
         return "respond"
     return "generate_query"
 
@@ -170,6 +173,12 @@ async def respond(
     return {"messages": [response]}
 
 
+async def idk_response(state: State, *, config: RunnableConfig):
+    """Call the LLM powering our "agent"."""
+    configuration = Configuration.from_runnable_config(config)
+    return {"messages": [AIMessage(content=configuration.idk_response)]}
+
+
 # Define a new graph (It's just a pipe)
 
 
@@ -179,6 +188,7 @@ builder.add_node(intent_guardrail)
 builder.add_node(generate_query)
 builder.add_node(retrieve)
 builder.add_node(respond)
+builder.add_node(idk_response)
 
 builder.add_edge("__start__", "intent_guardrail")
 
@@ -186,8 +196,9 @@ builder.add_conditional_edges(
     "intent_guardrail",
     decide_relevance,
     {
+        "idk_response": "idk_response",
         "respond": "respond",
-        "generate_query": "generate_query"
+        "generate_query": "generate_query",
     }
 )
 
