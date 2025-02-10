@@ -1,4 +1,9 @@
-# LangGraph Retrieval Chat Bot Template
+# CAP - Empowering Enterprise AI Transformation with Open Source
+This repository is part of CAP - a platform for building and deploying AI applications. It is built with LangGraph and Model Context Protocol (MCP).
+Find more about CAP at [https://cap.agaile.ai](https://cap.agaile.ai).
+
+
+## LangGraph Retrieval Chat Bot Template
 
 [![CI](https://github.com/langchain-ai/retrieval-agent-template/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/langchain-ai/retrieval-agent-template/actions/workflows/unit-tests.yml)
 [![Integration Tests](https://github.com/langchain-ai/retrieval-agent-template/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/langchain-ai/retrieval-agent-template/actions/workflows/integration-tests.yml)
